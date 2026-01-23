@@ -11,13 +11,162 @@ datasource db {
 model File {
   id        String  @id @default(cuid())
   key       String
-  userId    String?
+  user_id   String?
   extension String?
   url       String?
   type      String?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 
   @@map("files")
+}
+
+model User {
+  id         String @id @default(cuid())
+  first_name String
+  last_name  String
+  email      String @unique
+  phone      String // never index
+  phone_e164 String // index this
+  dial_code  String // never index
+  pwd_hash   String
+
+  email_verified Boolean @default(false)
+  phone_verified Boolean @default(false)
+  activated      Boolean @default(false)
+
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+  email_verified_at DateTime?
+  phone_verified_at DateTime?
+  last_login_at     DateTime?
+
+  user_profile    UserProfile?
+  password_resets PasswordReset[]
+  payoutAccounts  PayoutAccount[]
+  transactions    Transaction[]
+  wallet          Wallet?
+
+  @@index([created_at])
+  @@map("users")
+}
+
+model UserProfile {
+  id              String   @id @default(cuid())
+  gender          Gender
+  dob             DateTime
+  display_picture String?
+  bio             String?
+  locale          String   @default("en")
+
+  user_id String @unique
+  user    User   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@map("user_profiles")
+}
+
+model PayoutAccount {
+  id             String  @id @default(cuid())
+  bank_code      String
+  account_number String
+  account_name   String
+  is_primary     Boolean @default(true)
+  country        String  @default("ng")
+  currency       String  @default("ngn")
+
+  receipent_code String?
+
+  user_id String
+  user    User   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@map("payout_accounts")
+}
+
+model PayoutRequest {
+  id String @id @default(cuid())
+
+  @@map("payout_requests")
+}
+
+model PasswordReset {
+  id           String    @id @default(cuid())
+  user_id      String
+  otp_hash     String?
+  session_hash String
+  expires_at   DateTime
+  used_at      DateTime?
+  attempts     Int       @default(0)
+  created_at   DateTime  @default(now())
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([session_hash])
+  @@map("password_resets")
+}
+
+model Transaction {
+  id String @id @default(cuid())
+
+  user_id String
+  user    User   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  provider  String
+  amount    Float
+  reference String @unique
+
+  product     Json
+  access_code String?
+  metadata    Json?
+  currency    String  @default("ngn")
+  memo        String?
+
+  type   TransactionType
+  status TransactionStatus @default(pending)
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@map("transactions")
+}
+
+model Wallet {
+  id      String @id @default(cuid())
+  user_id String @unique
+  user    User   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  available_balance Float  @default(0)
+  pending_balance   Float  @default(0)
+  locked_balance    Float  @default(0)
+  total_earned      Float  @default(0)
+  currency          String @default("ngn")
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@map("wallets")
+}
+
+enum Gender {
+  male
+  female
+}
+
+enum TransactionType {
+  inflow
+  outflow
+}
+
+enum TransactionStatus {
+  pending
+  success
+  failed
+  aborted
 }
