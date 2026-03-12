@@ -6,7 +6,7 @@ dotenv.config();
 export const env = {
   APP_NAME: get('APP_NAME').default('App').asString(),
   APP_DESC: get('APP_DESC').default('API backend service').asString(),
-  NODE_ENV: get('NODE_ENV').default('dev').asString(),
+  APP_ENV: get('APP_ENV').default('dev').asString(),
   PORT: get('PORT').default(3000).asPortNumber(),
 
   // Remove .required() - let it be optional during import

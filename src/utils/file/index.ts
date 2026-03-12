@@ -1,7 +1,7 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
-import { FileConfig } from '@configs';
+import { FileConfig } from '@/configs';
 import { S3Entity } from './s3.file';
-import { ExceptionFactory } from '@utils';
+import { ExceptionFactory } from '@/utils';
 import { FileStorage } from './file.interface';
 
 @Injectable()

@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { FileStorage } from './file.interface';
-import { FileConfig } from '@configs';
+import { FileConfig } from '@/configs';
 import { DeleteObjectCommand, S3 } from '@aws-sdk/client-s3';
 import { ExceptionHandler } from '../exception.util';
 import { Upload } from '@aws-sdk/lib-storage';
