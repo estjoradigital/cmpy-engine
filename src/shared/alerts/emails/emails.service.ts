@@ -3,7 +3,7 @@ import { ISendMailOptions, MailerService } from '@nestjs-modules/mailer';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import { OnEvent } from '@nestjs/event-emitter';
-import { PlatformEvents } from '@common/constants';
+import { PlatformEvents } from '@/common/constants';
 
 @Injectable()
 export class EmailsService {

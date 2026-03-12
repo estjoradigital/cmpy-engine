@@ -1,11 +1,11 @@
 import { Global, Module } from '@nestjs/common';
-import { FileEntity } from '@utils';
-import { FileConfig, PrismaConfig } from '@configs';
-import { S3Entity } from './utils/file/s3.file';
+import { JwtService } from '@nestjs/jwt';
+import { PrismaConfig } from '@/configs';
+import { QueueModule } from '@/shared/queues';
 
 @Global()
 @Module({
-  providers: [PrismaConfig, S3Entity, FileConfig, FileEntity],
-  exports: [PrismaConfig, FileEntity],
+  imports: [QueueModule],
+  providers: [PrismaConfig, JwtService],
 })
 export class GlobalModule {}

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaConfig } from '@configs';
-import { FileEntity } from '@utils';
+import { PrismaConfig } from '@/configs';
+import { FileEntity } from '@/utils';
 
 @Injectable()
 export class FileService {

@@ -2,12 +2,32 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as basicAuth from 'express-basic-auth';
-import { env } from '@configs';
-import { ResponseInterceptor, GlobalExceptionFilter } from '@common';
+import { env } from '@/configs';
+import { ResponseInterceptor, GlobalExceptionFilter } from '@/common';
 import { VersioningType } from '@nestjs/common';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // TODO: Limit it to Esjora servers only
+  app.enableCors({
+    origin: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-Requested-With',
+      'Accept',
+      'Origin',
+      'Access-Control-Request-Method',
+      'Access-Control-Request-Headers',
+      'x-request-source',
+    ],
+    credentials: true,
+    maxAge: 86400,
+    preflightContinue: false,
+    optionsSuccessStatus: 200,
+  });
 
   app.useGlobalInterceptors(new ResponseInterceptor());
   app.useGlobalFilters(new GlobalExceptionFilter());
@@ -53,11 +73,11 @@ async function bootstrap() {
 
   const port = env.PORT;
   await app.listen(port);
-
+  const protocol = env.APP_ENV !== 'dev' ? 'https' : 'http';
   console.info(`
     ------
-    API server listening on port: :${port}
-    Access documentation :${port}/docs
+    API server listening on port: ${protocol}://localhost:${port}
+    Access documentation: ${protocol}://localhost:${port}/docs
     ------
     `);
 }

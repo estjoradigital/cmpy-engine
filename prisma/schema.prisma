@@ -23,30 +23,34 @@ model File {
 }
 
 model User {
-  id         String @id @default(cuid())
-  first_name String
-  last_name  String
-  email      String @unique
-  phone      String // never index
-  phone_e164 String // index this
-  dial_code  String // never index
-  pwd_hash   String
+  id            String @id @default(cuid())
+  first_name    String
+  last_name     String
+  email         String @unique
+  phone         String // never index
+  phone_e164    String // index this
+  dial_code     String // never index
+  pwd_hash      String
+  share_percent Int
 
   email_verified Boolean @default(false)
   phone_verified Boolean @default(false)
   activated      Boolean @default(false)
+  deleted        Boolean @default(false)
 
   created_at        DateTime  @default(now())
   updated_at        DateTime  @updatedAt
   email_verified_at DateTime?
   phone_verified_at DateTime?
   last_login_at     DateTime?
+  deleted_at        DateTime?
 
   user_profile    UserProfile?
   password_resets PasswordReset[]
-  payoutAccounts  PayoutAccount[]
   transactions    Transaction[]
-  wallet          Wallet?
+  payout_methods  PayoutMethod[]
+  payout_requests PayoutRequest[]
+  accounts        Account[]
 
   @@index([created_at])
   @@map("users")
@@ -69,32 +73,6 @@ model UserProfile {
   @@map("user_profiles")
 }
 
-model PayoutAccount {
-  id             String  @id @default(cuid())
-  bank_code      String
-  account_number String
-  account_name   String
-  is_primary     Boolean @default(true)
-  country        String  @default("ng")
-  currency       String  @default("ngn")
-
-  receipent_code String?
-
-  user_id String
-  user    User   @relation(fields: [user_id], references: [id], onDelete: Cascade)
-
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-
-  @@map("payout_accounts")
-}
-
-model PayoutRequest {
-  id String @id @default(cuid())
-
-  @@map("payout_requests")
-}
-
 model PasswordReset {
   id           String    @id @default(cuid())
   user_id      String
@@ -112,46 +90,107 @@ model PasswordReset {
   @@map("password_resets")
 }
 
-model Transaction {
-  id String @id @default(cuid())
+model PayoutMethod {
+  id             String  @id @default(cuid())
+  bank_code      String
+  account_number String
+  account_name   String
+  bank_logo      String
+  is_primary     Boolean @default(true)
+  country        String  @default("ng")
+  currency       String  @default("ngn")
+  payout_code    String  @unique
 
   user_id String
   user    User   @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
-  provider  String
-  amount    Float
-  reference String @unique
-
-  product     Json
-  access_code String?
-  metadata    Json?
-  currency    String  @default("ngn")
-  memo        String?
-
-  type   TransactionType
-  status TransactionStatus @default(pending)
-
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
+
+  @@map("payout_methods")
+}
+
+model PayoutRequest {
+  id     String @id @default(cuid())
+  amount BigInt
+
+  user_id String
+  user    User   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  transaction_id String?
+  transaction    Transaction? @relation(fields: [transaction_id], references: [id])
+
+  status PayoutRequestStatus @default(submitted)
+
+  processed_at  DateTime?
+  delayed_until DateTime?
+  created_at    DateTime  @default(now())
+  updated_at    DateTime  @updatedAt
+
+  @@map("payout_requests")
+}
+
+model Transaction {
+  id String @id @default(cuid())
+
+  user_id String?
+  user    User?   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  provider  String
+  amount    BigInt
+  reference String @unique
+
+  product     Json?
+  access_code String?
+  metadata    Json?
+  currency    String  @default("NGN")
+  memo        String?
+
+  type      TransactionType
+  direction TransactionDirection
+  status    TransactionStatus    @default(pending)
+
+  created_at      DateTime        @default(now())
+  updated_at      DateTime        @updatedAt
+  ledger_entries  LedgerEntry[]
+  payout_requests PayoutRequest[]
 
   @@map("transactions")
 }
 
-model Wallet {
-  id      String @id @default(cuid())
-  user_id String @unique
-  user    User   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+model Account {
+  id       String @id @default(cuid())
+  currency String @default("NGN")
 
-  available_balance Float  @default(0)
-  pending_balance   Float  @default(0)
-  locked_balance    Float  @default(0)
-  total_earned      Float  @default(0)
-  currency          String @default("ngn")
+  belongs_to AccountOwner
+  kind       AccountKind
+
+  user_id String?
+  User    User?   @relation(fields: [user_id], references: [id], onDelete: SetNull)
+
+  created_at     DateTime      @default(now())
+  updated_at     DateTime      @updatedAt
+  ledger_entries LedgerEntry[]
+
+  @@map("accounts")
+}
+
+model LedgerEntry {
+  id     String @id @default(cuid())
+  amount BigInt
+
+  account_id String
+  account    Account @relation(fields: [account_id], references: [id], onDelete: SetNull)
+
+  direction LedgerEntryDirection
+
+  transaction_id String
+  transaction    Transaction @relation(fields: [transaction_id], references: [id])
 
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
-  @@map("wallets")
+  @@map("ledger_entries")
 }
 
 enum Gender {
@@ -160,8 +199,8 @@ enum Gender {
 }
 
 enum TransactionType {
-  inflow
-  outflow
+  earning
+  payout
 }
 
 enum TransactionStatus {
@@ -169,4 +208,33 @@ enum TransactionStatus {
   success
   failed
   aborted
+}
+
+enum TransactionDirection {
+  inflow
+  outflow
+}
+
+enum AccountKind {
+  platform_holding
+  funding
+  plaform_revenue
+  platform_expense
+  platform_suspense
+}
+
+enum AccountOwner {
+  user
+  platform
+}
+
+enum LedgerEntryDirection {
+  credit
+  debit
+}
+
+enum PayoutRequestStatus {
+  submitted
+  processed
+  delayed
 }
